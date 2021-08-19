@@ -1,0 +1,294 @@
+\documentclass[a4paper,12pt]{extarticle}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{xcolor}
+
+\renewcommand\familydefault{\sfdefault}
+\usepackage{tgheros}
+\usepackage[defaultmono]{droidmono}
+
+\usepackage{amsmath,amssymb,amsthm,textcomp}
+\usepackage{enumerate}
+\usepackage{multicol}
+\usepackage{tikz}
+
+\usepackage{geometry}
+\geometry{left=25mm,right=25mm,%
+bindingoffset=0mm, top=20mm,bottom=20mm}
+
+
+\linespread{1.3}
+
+\newcommand{\linia}{\rule{\linewidth}{0.5pt}}
+
+% custom theorems if needed
+\newtheoremstyle{mytheor}
+    {1ex}{1ex}{\normalfont}{0pt}{\scshape}{.}{1ex}
+    {{\thmname{#1 }}{\thmnumber{#2}}{\thmnote{ (#3)}}}
+
+\theoremstyle{mytheor}
+\newtheorem{defi}{Definition}
+
+% my own titles
+\makeatletter
+\renewcommand{\maketitle}{
+\begin{center}
+\vspace{2ex}
+{\huge \@title}
+\vspace{1ex}
+\\
+\linia\\
+\@author \hfill \@date
+\vspace{4ex}
+\end{center}
+}
+\makeatother
+%%%
+
+% custom footers and headers
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\lhead{}
+\chead{}
+\rhead{}
+\lfoot{Intro to Visual Odometry}
+\cfoot{}
+\rfoot{Page \thepage}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+%
+
+% code listing settings
+\usepackage{listings}
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    aboveskip={1.0\baselineskip},
+    belowskip={1.0\baselineskip},
+    columns=fixed,
+    extendedchars=true,
+    breaklines=true,
+    tabsize=4,
+    prebreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\hookleftarrow}},
+    frame=lines,
+    showtabs=false,
+    showspaces=false,
+    showstringspaces=false,
+    keywordstyle=\color[rgb]{0.627,0.126,0.941},
+    commentstyle=\color[rgb]{0.133,0.545,0.133},
+    stringstyle=\color[rgb]{01,0,0},
+    numbers=left,
+    numberstyle=\small,
+    stepnumber=1,
+    numbersep=10pt,
+    captionpos=t,
+    mathescape=true,
+    escapeinside={\%*}{*)}
+}
+
+
+% Package for : url linking
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={Sharelatex Example},
+    bookmarks=true,
+    pdfpagemode=FullScreen,
+    }
+    
+    
+%%%----------%%%----------%%%----------%%%----------%%%
+%%%----------%%%----------%%%----------%%%----------%%%
+
+\begin{document}
+
+\title{Visual Odometry }
+
+\author{ Dhruv Patel }
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Introduction : Problem Formulation} % Unnumbered section
+\paragraph*{What is odometry?}
+\mbox{}\\
+Normally, a wheel odometer (or simply \emph{odometer}) measures the number of rotations that the wheel is undergoing, and multiplies that by the circumference to get an estimate of the distance travelled by the car. \textbf{Odometry} is used as a more general term in Robotics, and often refers to estimating not only the distance traveled, but the entire trajectory of a moving robot. So, for every time instance $t$, there is a vector $[x^t \: y^t \: z^t \: \alpha^{t} \: \beta^{t} \: \gamma^{t}]^{T}$ which describes the complete \textbf{pose} of the robot at that instance. \newline
+Note : $ \alpha^{t}, \beta^{t}, \gamma^{t} $ here are the \textbf{Euler Angles}, while $ x^t, y^t, z^t $ are \textbf{Cartesian Coordinates} of the robot.
+
+\paragraph{What is Visual Odometry?}
+\mbox{}\\
+In Visual Odometry, we have a camera (or an array of cameras) rigidly attached to a moving object (such as a car or a robot), and our job is to construct a \textbf{6-DOF} trajectory using the video stream coming from this camera(s). When only one camera is used, it's called \textbf{Monocular Visual Odometry} and when two (or more) cameras, it's referred to as \textbf{Stereo Visual Odometry}. 
+
+
+\paragraph*{Input:}
+\mbox{}\\
+We have a stream of images (i.e. video - grayscale/color) coming from a camera. Let the frames, captured at time $t$ and $t+1$ be referred to as $I^t$, $I^{t+1}$. We have prior knowledge of all the intrinsic parameters, obtained via calibration, which can be done in OpenCV.
+
+\paragraph*{Output:}
+\mbox{}\\
+For every pair of images, we need to find the Rotation Matrix $R$ and the Translation Vector $t$, which describes the motion of the vehicle between the two frames. The vector $t$ can only be computed up to a scale factor in our monocular scheme.
+
+
+\section{Algorithm : Overview}
+
+1. Capture Images : $I^t, I^{t+1}$ \newline
+2. Feature Detection \newline
+3. Feature Tracking \newline
+4. Estimating the Essential Matrix \newline 
+5. Estimating $R, t$ from the essential matrix \newline
+6. Taking scale information from some external source and concatenate the translation vectors, and rotation matrices. \newline 
+
+\subsection{Feature Detection}
+
+There are many different approaches for "Feature Detection" and it yearns more research into this as we head deep down into VO. For now, I am using \textbf{FAST} corner detector. Let's see how this detector works, though it will be useful to look at the \href{https://www.edwardrosten.com/work/fast.html}{original paper and source code} to understand how it works.
+
+
+Let's suppose there is a point \textbf{P} which we want to test if it is a corner or not. A circle is drawn of 16px circumference around this point as shown in figure below. For every pixel which lies on the circumference of this circle, we see if there exists a continuous set of pixels whose intensity exceed the intensity of the original pixel by a certain factor \textbf{I} and for another set of continuous pixels if the intensity is less by at least the same factor \textbf{I}. If \textbf{yes}, then we mark this point as a corner. This would generate many points and because we have to track all these features, it is recommended that we filter out some points to reduce computer resources. A heuristic for rejecting the vast majority of non-corners is used, in which the pixel at $1,9,5,13$ are examined first, and at least three of them must have a higher intensity by amount \textbf{I}, or must have an intensity lower by the same amount \textbf{I} for the point to be corner. This particular approach is selected due to its computational efficiency as compared to other popular interest point detectors such as \textbf{SIFT} detector.
+
+\begin{lstlisting}
+# FAST corner detector 
+
+\end{lstlisting}
+
+\subsection{Feature Tracking}
+
+The FAST corners detected in the previous step are fed to the next step, which uses a \href{https://cecas.clemson.edu/~stb/klt/}{KLT Tracker}. The KLT Tracker basically looks around every corner to be tracked, and uses this local information to find the corresponding corner in the next image. The corners detected in $I^{t}$ are tracked in $I^{t+1}$. Let the set of features detected in $I^{t}$ be $\mathcal{F}^{t}$, and the set of corresponding features in $I^{t+1}$ be $\mathcal{F}^{t+1}$.
+
+\subsection{Feature Re-detection}
+
+While doing KLT Tracking, there will be some points which will eventually move out of the field of the view of the camera and we would lose tracking on them. Hence, a trigger for re-detection is necessary whenever the total number of features go below a certain threshold.
+
+\subsection{Essential Matrix Estimation}
+Once we have point-correspondences, we have several techniques for the computation of an essential matrix. The essential matrix is defined as : $ y_{1}^{T} * E * y_{2} = 0 $. Here, $y_{1}, y_{2}$ are homogenous normalized image co-ordinates. While a simple algorithm requiring eight point correspondences exists, a more recent approach that is shown to give better results is the five point algorithm. It solves a number of non-linear equations, and requires the minimum number of points possible, since the Essential Matrix has only five degrees of freedom.
+
+\subsection{RANSAC}
+If all of our point correspondences were perfect, then we would have need only five feature correspondences between two successive frames to estimate motion accurately. However, the feature tracking algorithms are not perfect, and therefore we have several erroneous correspondence. A standard technique of handling outliers when doing model estimation is RANSAC. It is an iterative algorithm. At every iteration, it randomly samples five points from the set of correspondences, estimates the Essential Matrix, and then checks if the other points are inliers when using this Essential Matrix. The algorithm terminates after a fixed number of iterations, and the Essential Matrix with which the maximum number of points agree, is used. 
+
+\begin{lstlisting}
+# Implementing RANSAC using OpenCV
+\end{lstlisting}
+
+\subsection{Computing R, t from the Essential Matrix}
+
+Another definition of the Essential Matrix is as follows : $ E = R[t]_x $. Here, $ R $ is the rotation matrix, while $ [t]_x $ is the matrix representation of a cross product with $ t $. Taking the SVD of the essential matrix, and then exploiting the constraints on the rotation matrix, we get the following : \newline
+
+\begin{equation}
+E = U \Sigma V^{T}
+\end{equation}
+\begin{equation}
+[t]_x = V W \Sigma V^{T}
+\end{equation}
+\begin{equation}
+R = U W^{-1} V^{T}
+\end{equation}
+
+\begin{lstlisting}
+# Implementing extraction of R, t from Essential Matrix using OpenCV
+
+\end{lstlisting}
+
+\section{Constructing Trajectory}
+
+Let the pose of the camera be denoted by $ R_{pos}, t_{pos} $. We can then track the trajectory using the following equation :
+\newline
+
+\begin{equation}
+R_{pos} = RR_{pos} 
+\end{equation}
+\begin{equation}
+t_{pos} = t_{pos} + t R_{pos}
+\end{equation}
+
+
+\newpage
+
+\section{The Pin-Hole Camera Model}
+
+The \emph{pin-hole camera} model (or sometimes \emph{projective camera} model) is a widely used camera model in computer vision. It is simple and accurate enough for most applications. The name comes from the type of camera, that collects light through a small hole to the inside of a dark box or room. In the pin-hole camera model, light passes through a single point, the \emph{camera center}, \textbf{C}, before it is projected onto an \emph{image plane}. Figure below shows such instance where the image plane is drawn in front of the camera center. The image plane in an actual camera would be upside down behind the camera center, but the model is the same.
+
+
+The projection properties of a pin-hole camera can be derived from this illustration and the assumption that the image axis is aligned with the $x$ and $y$ axis of a 3D coordinate system. The \emph{optical axis} of the camera then coincides with the $z$ axis and the projection follows from similar triangles. By adding rotation and translation to put a 3D point in this coordinate system before projecting, the complete projection transform follows.
+
+
+With a pin-hole camera, a 3D point \textbf{X} is projected to an image point \textbf{x} (both expressed in homogeneous coordinates) as \medspace
+\begin{equation}
+\lambda \: \textbf{x} = P \: \textbf{X}
+\end{equation}
+Here, the 3 x 4 matrix \emph{P} is called the \emph{camera matrix (or projection matrix)}. Note that the 3D point \textbf{X} has four elements in homogeneous coordinates, $ \emph{X} = \begin{bmatrix} X, Y, Z, W \end{bmatrix} $. The scalar $\lambda$ is the \emph{inverse depth} of the 3D point and is needed if we want all coordinates to be homogeneous with the last value normalized to one.
+
+\subsection{The Camera Matrix}
+ 
+The camera matrix can be decomposed as \medspace
+\begin{equation}
+P = K \: [R \: | \: t],
+\end{equation}
+where, \newline $R$ = rotation matrix describing the orientation of the camera, \newline
+$t$ = 3D translation vector describing the position of the camera center \newline
+$K$ = intrinsic that describes the projection properties of the camera. \newline
+
+The calibration matrix depends only on the camera properties and is in a general form written as, 
+\begin{equation}
+K = \left[
+\begin{array}{ccc}
+\alpha f & s & c_{x} \\
+0 & f & c_{y} \\
+0 & 0 & 1
+\end{array}
+\right]
+\end{equation}
+
+The \emph{focal length}, $f$, is the distance between the image plane and the camera center. The skew, $s$, is only used if the pixel array in the sensor is skewed and can in most cases safely be set to zero. This gives
+\begin{equation}
+K = \left[
+\begin{array}{ccc}
+f_{x} & 0 & c_{x} \\
+0 & f_{y} & c_{y} \\
+0 & 0 & 1
+\end{array}
+\right]
+\end{equation}
+where, we used the alternative notation $f_{x}$ and $f_{y}$ with $f_{x} = \alpha f_{y} $. 
+\newline
+The \emph{aspect ratio}, $\alpha$ is used for non-square pixel elements. It is often safe to assume $\alpha = 1$. With this assumption, the matrix becomes
+\begin{equation}
+K = \left[
+\begin{array}{ccc}
+f & 0 & c_{x} \\
+0 & f & c_{y} \\
+0 & 0 & 1
+\end{array}
+\right]
+\end{equation}
+
+
+Besides the focal length, the only remaining parameters are the coordinates of the \emph{optical center} (sometimes called the \emph{principal point}), the image point $c = [c_{x}, \: c_{y}]$ where the optical axis intersects the image plane. Since this is usually in the center of the image and image coordinates are measured from the top-left corner, these values are often well approximated with half the width and height of the image. It is worth noting that in this last case the only unknown variable is the focal length $f$.
+
+
+\subsection{Factoring the Camera Matrix}
+If we are given a camera matrix $P$ of the form in equation $(7)$, we need to be able to recover the internal parameters $K$ and the camera position and post $t$ and $R$. Partitioning the matrix is called \emph{factorization}. In this case, we will use a type of matrix factorization called \emph{RQ-factorization}.
+
+Note : RQ-factorization is not unique - meaning - there is a sign ambiguity in the factorization. Since we need the rotation matrix $R$ to have positive determinant (otherwise the coordinate axis can get flipped), we can add a transform $T$ to change the sign when needed.
+
+\subsection{Computing the Camera Center}
+Given a camera projection matrix, $P$, it is  useful to be able to compute the camera's position in space. The camera center, $C$, is a 3D point with the property $P \: C = 0 $. For a camera with $P = K \: [R \: | \: t]$, this gives
+\begin{equation}
+K [ R \: | \: \textbf{t} ] \: \textbf{C} = K \: R \: \textbf{C} + K \textbf{t} = 0
+\end{equation}
+and the camera center can be computed as
+\begin{equation}
+\textbf{C} = - R^{T} \: \textbf{t}
+\end{equation}
+Note :: The camera center is independent of the intrinsic calibration $K$, as it should be.
+
+
+\subsection{Camera Calibration}
+Calibrating a camera means determining the internal camera parameters, in our case the matrix $K$. It is possible to extend this camera model to include radial distortion and other artifacts if your application needs precise measurements. For most applications, however, the simple model in equation $(9)$ is good enough. The standard way to calibrate cameras is to take lots of pictures of a flat checkerboard pattern. 
+\end{document}

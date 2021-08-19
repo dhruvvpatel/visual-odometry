@@ -1,0 +1,14 @@
+\BOOKMARK [1][-]{section.1}{Introduction : Problem Formulation}{}% 1
+\BOOKMARK [1][-]{section.2}{Algorithm : Overview}{}% 2
+\BOOKMARK [2][-]{subsection.2.1}{Feature Detection}{section.2}% 3
+\BOOKMARK [2][-]{subsection.2.2}{Feature Tracking}{section.2}% 4
+\BOOKMARK [2][-]{subsection.2.3}{Feature Re-detection}{section.2}% 5
+\BOOKMARK [2][-]{subsection.2.4}{Essential Matrix Estimation}{section.2}% 6
+\BOOKMARK [2][-]{subsection.2.5}{RANSAC}{section.2}% 7
+\BOOKMARK [2][-]{subsection.2.6}{Computing R, t from the Essential Matrix}{section.2}% 8
+\BOOKMARK [1][-]{section.3}{Constructing Trajectory}{}% 9
+\BOOKMARK [1][-]{section.4}{The Pin-Hole Camera Model}{}% 10
+\BOOKMARK [2][-]{subsection.4.1}{The Camera Matrix}{section.4}% 11
+\BOOKMARK [2][-]{subsection.4.2}{Factoring the Camera Matrix}{section.4}% 12
+\BOOKMARK [2][-]{subsection.4.3}{Computing the Camera Center}{section.4}% 13
+\BOOKMARK [2][-]{subsection.4.4}{Camera Calibration}{section.4}% 14

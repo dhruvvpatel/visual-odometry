@@ -1,0 +1,15 @@
+\contentsline {section}{\numberline {1}Introduction : Problem Formulation}{2}{section.1}% 
+\contentsline {paragraph}{What is Visual Odometry?}{2}{section*.3}% 
+\contentsline {section}{\numberline {2}Algorithm : Overview}{2}{section.2}% 
+\contentsline {subsection}{\numberline {2.1}Feature Detection}{3}{subsection.2.1}% 
+\contentsline {subsection}{\numberline {2.2}Feature Tracking}{3}{subsection.2.2}% 
+\contentsline {subsection}{\numberline {2.3}Feature Re-detection}{3}{subsection.2.3}% 
+\contentsline {subsection}{\numberline {2.4}Essential Matrix Estimation}{4}{subsection.2.4}% 
+\contentsline {subsection}{\numberline {2.5}RANSAC}{4}{subsection.2.5}% 
+\contentsline {subsection}{\numberline {2.6}Computing R, t from the Essential Matrix}{4}{subsection.2.6}% 
+\contentsline {section}{\numberline {3}Constructing Trajectory}{5}{section.3}% 
+\contentsline {section}{\numberline {4}The Pin-Hole Camera Model}{6}{section.4}% 
+\contentsline {subsection}{\numberline {4.1}The Camera Matrix}{6}{subsection.4.1}% 
+\contentsline {subsection}{\numberline {4.2}Factoring the Camera Matrix}{7}{subsection.4.2}% 
+\contentsline {subsection}{\numberline {4.3}Computing the Camera Center}{7}{subsection.4.3}% 
+\contentsline {subsection}{\numberline {4.4}Camera Calibration}{8}{subsection.4.4}% 
